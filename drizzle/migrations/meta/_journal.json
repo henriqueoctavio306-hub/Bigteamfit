@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789938903853,
+      "tag": "0000_create_bigteam_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789938917639,
+      "tag": "0001_secure_checkin_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789938938830,
+      "tag": "0002_add_profile_onboarding_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789939089927,
+      "tag": "0003_tighten_function_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789939833278,
+      "tag": "0004_complete_secure_students_module",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789939870402,
+      "tag": "0005_create_student_record_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789939900172,
+      "tag": "0006_bootstrap_first_personal",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789940049440,
+      "tag": "0007_harden_student_and_diet_isolation",
+      "breakpoints": true
+    }
+  ]
+}

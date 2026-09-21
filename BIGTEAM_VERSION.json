@@ -1,0 +1,6 @@
+{
+  "version": "22",
+  "focus": "clean repository packaging for deployment",
+  "app_root": "repository root",
+  "production_secrets_included": false
+}
