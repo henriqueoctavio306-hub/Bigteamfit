@@ -1,13 +1,278 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
-  head:()=>({meta:[{title:"Entrar — BIGTEAM"},{name:"description",content:"Acesse sua consultoria BIGTEAM."},{property:"og:title",content:"Entrar — BIGTEAM"},{property:"og:description",content:"Acesse sua consultoria BIGTEAM."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),
+  head: () => ({
+    meta: [
+      {
+        title: "Entrar — BIGTEAM",
+      },
+      {
+        name: "description",
+        content: "Acesse sua consultoria BIGTEAM.",
+      },
+      {
+        property: "og:title",
+        content: "Entrar — BIGTEAM",
+      },
+      {
+        property: "og:description",
+        content: "Acesse sua consultoria BIGTEAM.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+    ],
+  }),
   component: AuthPage,
 });
-function AuthPage(){const [mode,setMode]=useState<"login"|"signup"|"forgot">("login");const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);const navigate=useNavigate();async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");if(mode==="forgot"){const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/reset-password`});setMessage(error?error.message:"Enviamos o link de recuperação para seu e-mail.");setBusy(false);return;}if(mode==="signup"){const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin,data:{full_name:name}}});if(!error&&data.user&&data.session){await supabase.rpc("ensure_my_profile",{_full_name:name});await navigate({to:"/"});}else setMessage(error?error.message:"Confira seu e-mail para confirmar o cadastro.");}else{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)setMessage(error.message);else {await supabase.rpc("ensure_my_profile",{_full_name:""});await navigate({to:"/"});}}setBusy(false);}async function google(){const result=await lovable.auth.signInWithOAuth("google",{redirect_uri:window.location.origin});if(result.error)setMessage(result.error.message)}return <main className="auth-page"><div className="auth-mark"><Dumbbell/><span>BIGTEAM</span></div><div className="auth-panel"><Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft className="h-4 w-4"/>Voltar para demo</Link><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Acesso exclusivo</p><h1 className="mt-3 text-4xl font-black uppercase">{mode==="login"?"Entre no time":mode==="signup"?"Comece agora":"Recupere o acesso"}</h1><p className="mt-2 text-sm text-muted-foreground">Treino, dieta e acompanhamento no seu ritmo.</p><Button variant="outline" className="mt-7 h-11 w-full" onClick={google}>Continuar com Google</Button><div className="my-5 flex items-center gap-3 text-[10px] text-muted-foreground"><span className="h-px flex-1 bg-border"/>OU USE SEU E-MAIL<span className="h-px flex-1 bg-border"/></div><form onSubmit={submit} className="space-y-4">{mode==="signup"&&<label className="field">Nome completo<Input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label className="field">E-mail<Input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>{mode!=="forgot"&&<label className="field">Senha<Input type="password" minLength={6} required value={password} onChange={e=>setPassword(e.target.value)}/></label>}{message&&<p className="border border-border bg-secondary p-3 text-sm">{message}</p>}<Button disabled={busy} className="h-11 w-full">{busy?"Aguarde...":mode==="login"?"Entrar":mode==="signup"?"Criar conta":"Enviar link"}</Button></form><div className="mt-6 flex justify-between text-xs"><button onClick={()=>setMode(mode==="signup"?"login":"signup")} className="font-bold text-primary">{mode==="signup"?"Já tenho conta":"Criar uma conta"}</button><button onClick={()=>setMode(mode==="forgot"?"login":"forgot")} className="text-muted-foreground">{mode==="forgot"?"Voltar ao login":"Esqueci a senha"}</button></div></div></main>}
+
+function AuthPage() {
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Se o usuário voltar do Google já autenticado,
+  // garante o perfil e entra na plataforma.
+  useEffect(() => {
+    const handleOAuthSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        return;
+      }
+
+      await supabase.rpc("ensure_my_profile", {
+        _full_name:
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          "",
+      });
+
+      await navigate({ to: "/" });
+    };
+
+    handleOAuthSession();
+  }, [navigate]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+
+    setBusy(true);
+    setMessage("");
+
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      setMessage(
+        error
+          ? error.message
+          : "Enviamos o link de recuperação para seu e-mail."
+      );
+
+      setBusy(false);
+      return;
+    }
+
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            full_name: name,
+          },
+        },
+      });
+
+      if (!error && data.user && data.session) {
+        await supabase.rpc("ensure_my_profile", {
+          _full_name: name,
+        });
+
+        await navigate({ to: "/" });
+      } else {
+        setMessage(
+          error
+            ? error.message
+            : "Confira seu e-mail para confirmar o cadastro."
+        );
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setMessage(error.message);
+      } else {
+        await supabase.rpc("ensure_my_profile", {
+          _full_name: "",
+        });
+
+        await navigate({ to: "/" });
+      }
+    }
+
+    setBusy(false);
+  }
+
+  async function google() {
+    setBusy(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth`,
+      },
+    });
+
+    if (error) {
+      setMessage(error.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <div className="auth-mark">
+        <Dumbbell />
+        <span>BIGTEAM</span>
+      </div>
+
+      <div className="auth-panel">
+        <Link
+          to="/"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para demo
+        </Link>
+
+        <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">
+          Acesso exclusivo
+        </p>
+
+        <h1 className="mt-3 text-4xl font-black uppercase">
+          {mode === "login"
+            ? "Entre no time"
+            : mode === "signup"
+              ? "Comece agora"
+              : "Recupere o acesso"}
+        </h1>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          Treino, dieta e acompanhamento no seu ritmo.
+        </p>
+
+        <Button
+          variant="outline"
+          className="mt-7 h-11 w-full"
+          onClick={google}
+          disabled={busy}
+        >
+          {busy ? "Aguarde..." : "Continuar com Google"}
+        </Button>
+
+        <div className="my-5 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          OU USE SEU E-MAIL
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          {mode === "signup" && (
+            <label className="field">
+              Nome completo
+              <Input
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+          )}
+
+          <label className="field">
+            E-mail
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+
+          {mode !== "forgot" && (
+            <label className="field">
+              Senha
+              <Input
+                type="password"
+                minLength={6}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          )}
+
+          {message && (
+            <p className="border border-border bg-secondary p-3 text-sm">
+              {message}
+            </p>
+          )}
+
+          <Button disabled={busy} className="h-11 w-full">
+            {busy
+              ? "Aguarde..."
+              : mode === "login"
+                ? "Entrar"
+                : mode === "signup"
+                  ? "Criar conta"
+                  : "Enviar link"}
+          </Button>
+        </form>
+
+        <div className="mt-6 flex justify-between text-xs">
+          <button
+            onClick={() =>
+              setMode(mode === "signup" ? "login" : "signup")
+            }
+            className="font-bold text-primary"
+          >
+            {mode === "signup" ? "Já tenho conta" : "Criar uma conta"}
+          </button>
+
+          <button
+            onClick={() =>
+              setMode(mode === "forgot" ? "login" : "forgot")
+            }
+            className="text-muted-foreground"
+          >
+            {mode === "forgot" ? "Voltar ao login" : "Esqueci a senha"}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
